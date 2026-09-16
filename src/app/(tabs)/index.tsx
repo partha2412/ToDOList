@@ -29,13 +29,13 @@ export default function Index() {
         <View className="mx-6 mb-4 h-px bg-gray-200" />
 
         {/* Task section header */}
-        <View className="px-6 mb-3 flex-row items-center justify-between">
+        {/* <View className="px-6 mb-3 flex-row items-center justify-between">
           <Text className="text-lg font-semibold text-gray-900">All tasks</Text>
 
           <View className="rounded-full bg-gray-100 px-3 py-1">
             <Text className="text-xs font-medium text-gray-500">Recent</Text>
           </View>
-        </View>
+        </View> */}
 
         {/* Tasks */}
         <View className="flex-1">
