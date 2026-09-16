@@ -209,8 +209,8 @@ const Tasks = () => {
           ))
         ) : (
           /* Empty state */
-          <View className="w-full items-center justify-center py-20">
-            <View className="mb-8 items-center">
+          <View className="w-full items-center justify-center py-6">
+            <View className="mb-10 items-center">
               <MaterialCommunityIcons
                 name="clipboard-text-outline"
                 size={55}
