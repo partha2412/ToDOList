@@ -1,9 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Swipeable } from "react-native-gesture-handler";
+import { deleteTask, loadData } from "@/services/dataController";
+
 import {
   Alert,
   Pressable,
@@ -11,7 +11,6 @@ import {
   ScrollView,
   Text,
   View,
-  ViewBase,
 } from "react-native";
 
 type Task = {
@@ -23,23 +22,83 @@ type Task = {
   dueDate: string;
 };
 
+const priorityOrder = {
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+
+const statusOrder = {
+  pending: 1,
+  "in-progress": 2,
+  completed: 3,
+};
+
 const Tasks = () => {
   const [refreshing, setRefreshing] = useState(false);
 
-  // IMPORTANT: initialize as an empty array
   const [tasks, setTasks] = useState<Task[]>([]);
+
+  const [sortBy, setSortBy] = useState<
+    "recent" | "dueDate" | "priority" | "status" | "title"
+  >("recent");
+
+  const [showSort, setShowSort] = useState(false);
+
+  const getSortLabel = () => {
+    switch (sortBy) {
+      case "dueDate":
+        return "Due Date";
+
+      case "priority":
+        return "Priority";
+
+      case "status":
+        return "Status";
+
+      case "title":
+        return "Title";
+
+      default:
+        return "Recent";
+    }
+  };
+
+  const getSortedTasks = () => {
+    const sorted = tasks.slice();
+
+    switch (sortBy) {
+      case "dueDate":
+        return sorted.sort(
+          (a, b) =>
+            new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+        );
+
+      case "priority":
+        return sorted.sort(
+          (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority],
+        );
+
+      case "status":
+        return sorted.sort(
+          (a, b) => statusOrder[a.status] - statusOrder[b.status],
+        );
+
+      case "title":
+        return sorted.sort((a, b) => a.title.localeCompare(b.title));
+
+      default:
+        return sorted;
+    }
+  };
 
   const fetchData = async () => {
     setRefreshing(true);
 
     try {
-      const my_tasks = await AsyncStorage.getItem("my_tasks");
+      const result = await loadData();
 
-      const storedTasks: Task[] = my_tasks ? JSON.parse(my_tasks) : [];
-
-      // Make sure we always have an array
-      setTasks(Array.isArray(storedTasks) ? storedTasks : []);
-
+      setTasks(Array.isArray(result) ? result : []);
     } catch (error) {
       console.error("Failed to load tasks:", error);
       setTasks([]);
@@ -48,31 +107,29 @@ const Tasks = () => {
     }
   };
 
-  const deleteTask = async (id: string) => {
-    try {
-      const updatedTasks = tasks.filter((task) => task._id !== id);
+  const handleDeleteTask = async (id: string) => {
+    // const updatedTasks = tasks.filter((task) => task._id !== id);
 
-      Alert.alert("Delete the Task ?", "delete the task from your database", [
-        {
-          text: "Cancel",
+    Alert.alert("Delete the Task?", "Delete this task from your database?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteTask(id);
+            await fetchData();
+          } catch (error) {
+            console.error("Failed to delete task:", error);
+          }
         },
-        {
-          text: "Ok",
-          onPress: async () => {
-            await AsyncStorage.setItem(
-              "my_tasks",
-              JSON.stringify(updatedTasks),
-            );
-            setTasks(updatedTasks);
-          },
-        },
-      ]);
-    } catch (error) {
-      console.error("Failed to delete task:", error);
-    }
+      },
+    ]);
   };
 
-  // Load tasks when component opens
   useFocusEffect(
     useCallback(() => {
       fetchData();
@@ -136,108 +193,241 @@ const Tasks = () => {
   }
 
   return (
-    <ScrollView
-      className="flex-1"
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={fetchData} />
-      }
-      showsVerticalScrollIndicator={false}
-    >
-      <View className="items-center gap-4 p-2 pb-36">
-        {tasks.length > 0 ? (
-          tasks.map((data, index) => (
-            <View
-              key={data._id}
-              className="w-[90%] rounded-2xl border border-gray-200 bg-white p-2 shadow-sm"
-            >
-              {/* Top */}
-              <View className="flex-row gap-3 rounded-xl bg-gray-50/60 p-2">
-                {/* Number */}
-                <View className="w-12 items-center justify-center">
-                  <Text className="text-2xl font-bold text-gray-900">
-                    {index + 1}.
-                  </Text>
+    <View className="flex-1">
+      {/* SORT HEADER */}
+      <View className="relative z-50 flex-row items-center justify-end px-5 py-3">
+        <Pressable
+          onPress={() => setShowSort(!showSort)}
+          className="flex-row items-center rounded-xl border border-gray-200 bg-white px-4 py-2"
+        >
+          <MaterialCommunityIcons name="sort" size={18} color="#374151" />
 
-                  <Text className="mt-0.5 font-mono text-[9px] text-gray-400">
-                    #{data._id.slice(-4)}
-                  </Text>
-                </View>
+          <Text className="ml-2 text-sm font-medium text-gray-700">
+            {getSortLabel()}
+          </Text>
 
-                {/* Content */}
-                <View className="flex-1 justify-center">
-                  <Text
-                    className="text-xl font-semibold tracking-tight text-gray-900"
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {data.title}
-                  </Text>
+          <MaterialCommunityIcons
+            name={showSort ? "chevron-up" : "chevron-down"}
+            size={18}
+            color="#6B7280"
+          />
+        </Pressable>
 
-                  <Text
-                    className="mt-1 text-sm leading-5 text-gray-500"
-                    numberOfLines={2}
-                    ellipsizeMode="tail"
-                  >
-                    {data.description}
-                  </Text>
-                </View>
-                <Pressable onPress={()=>deleteTask(data._id)}>
-                  <MaterialCommunityIcons name="delete" color="red" size={20} />
-                </Pressable>
-              </View>
-
-              {/* Metadata */}
-              <View className="mt-2 h-9 flex-row items-center border-t border-gray-100 pt-1">
-                {/* Date */}
-                <View className="flex-1 items-center">
-                  <Text className="text-xs font-medium text-gray-500">
-                    {new Date(data.dueDate).toLocaleDateString()}
-                  </Text>
-                </View>
-
-                {/* Status */}
-                <View className="flex-1 flex-row items-center justify-center gap-1.5">
-                  <StatusIcon status={data.status} />
-                </View>
-
-                {/* Priority */}
-                <View className="flex-1 items-center">
-                  <Priority priority={data.priority} />
-                </View>
-              </View>
-            </View>
-          ))
-        ) : (
-          /* Empty state */
-          <View className="w-full items-center justify-center py-6">
-            <View className="mb-10 items-center">
-              <MaterialCommunityIcons
-                name="clipboard-text-outline"
-                size={55}
-                color="#A1A1AA"
-              />
-
-              <Text className="mt-4 text-xl font-semibold text-gray-700">
-                No tasks yet
-              </Text>
-
-              <Text className="mt-1 text-sm text-gray-400">
-                Create your first task to get started.
-              </Text>
-            </View>
-
+        {/* DROPDOWN */}
+        {showSort && (
+          <View className="absolute right-5 top-14 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+            {/* Recent */}
             <Pressable
-              onPress={() => router.push("/AddTask")}
-              className="flex-row items-center rounded-2xl bg-gray-900 px-6 py-4"
+              onPress={() => {
+                setSortBy("recent");
+                setShowSort(false);
+              }}
+              className="px-4 py-3"
             >
-              <MaterialCommunityIcons name="plus" size={22} color="white" />
+              <Text
+                className={
+                  sortBy === "recent"
+                    ? "font-semibold text-sky-500"
+                    : "text-gray-700"
+                }
+              >
+                Recent
+              </Text>
+            </Pressable>
 
-              <Text className="ml-2 font-semibold text-white">Add Task</Text>
+            {/* Due Date */}
+            <Pressable
+              onPress={() => {
+                setSortBy("dueDate");
+                setShowSort(false);
+              }}
+              className="px-4 py-3"
+            >
+              <Text
+                className={
+                  sortBy === "dueDate"
+                    ? "font-semibold text-sky-500"
+                    : "text-gray-700"
+                }
+              >
+                Due Date
+              </Text>
+            </Pressable>
+
+            {/* Priority */}
+            <Pressable
+              onPress={() => {
+                setSortBy("priority");
+                setShowSort(false);
+              }}
+              className="px-4 py-3"
+            >
+              <Text
+                className={
+                  sortBy === "priority"
+                    ? "font-semibold text-sky-500"
+                    : "text-gray-700"
+                }
+              >
+                Priority
+              </Text>
+            </Pressable>
+
+            {/* Status */}
+            <Pressable
+              onPress={() => {
+                setSortBy("status");
+                setShowSort(false);
+              }}
+              className="px-4 py-3"
+            >
+              <Text
+                className={
+                  sortBy === "status"
+                    ? "font-semibold text-sky-500"
+                    : "text-gray-700"
+                }
+              >
+                Status
+              </Text>
+            </Pressable>
+
+            {/* Title */}
+            <Pressable
+              onPress={() => {
+                setSortBy("title");
+                setShowSort(false);
+              }}
+              className="px-4 py-3"
+            >
+              <Text
+                className={
+                  sortBy === "title"
+                    ? "font-semibold text-sky-500"
+                    : "text-gray-700"
+                }
+              >
+                Title A-Z
+              </Text>
             </Pressable>
           </View>
         )}
       </View>
-    </ScrollView>
+
+      {/* TASK LIST */}
+      <ScrollView
+        className="flex-1"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={fetchData} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="items-center gap-4 p-2 pb-36">
+          {tasks.length > 0 ? (
+            getSortedTasks().map((data, index) => (
+              <View
+                key={data._id}
+                className="w-[90%] rounded-2xl border border-gray-200 bg-white p-2 shadow-sm"
+              >
+                {/* TOP */}
+                <View className="flex-row gap-3 rounded-xl bg-gray-50/60 p-2">
+                  {/* NUMBER */}
+                  <View className="w-12 items-center justify-center">
+                    <Text className="text-2xl font-bold text-gray-900">
+                      {index + 1}.
+                    </Text>
+
+                    <Text className="mt-0.5 font-mono text-[9px] text-gray-400">
+                      #{data._id.slice(-4)}
+                    </Text>
+                  </View>
+
+                  {/* CONTENT */}
+                  <View className="flex-1 justify-center">
+                    <Text
+                      className="text-xl font-semibold tracking-tight text-gray-900"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {data.title}
+                    </Text>
+
+                    <Text
+                      className="mt-1 text-sm leading-5 text-gray-500"
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
+                      {data.description}
+                    </Text>
+                  </View>
+
+                  {/* DELETE */}
+                  <Pressable
+                    onPress={() => handleDeleteTask(data._id)}
+                    className="h-9 w-9 items-center justify-center rounded-lg bg-red-50"
+                  >
+                    <MaterialCommunityIcons
+                      name="delete-outline"
+                      color="#EF4444"
+                      size={20}
+                    />
+                  </Pressable>
+                </View>
+
+                {/* METADATA */}
+                <View className="mt-2 h-9 flex-row items-center border-t border-gray-100 pt-1">
+                  {/* DATE */}
+                  <View className="flex-1 items-center">
+                    <Text className="text-xs font-medium text-gray-500">
+                      {new Date(data.dueDate).toLocaleDateString()}
+                    </Text>
+                  </View>
+
+                  {/* STATUS */}
+                  <View className="flex-1 flex-row items-center justify-center gap-1.5">
+                    <StatusIcon status={data.status} />
+                  </View>
+
+                  {/* PRIORITY */}
+                  <View className="flex-1 items-center">
+                    <Priority priority={data.priority} />
+                  </View>
+                </View>
+              </View>
+            ))
+          ) : (
+            /* EMPTY STATE */
+
+            <View className="w-full items-center justify-center py-6">
+              <View className="mb-10 items-center">
+                <MaterialCommunityIcons
+                  name="clipboard-text-outline"
+                  size={55}
+                  color="#A1A1AA"
+                />
+
+                <Text className="mt-4 text-xl font-semibold text-gray-700">
+                  No tasks yet
+                </Text>
+
+                <Text className="mt-1 text-sm text-gray-400">
+                  Create your first task to get started.
+                </Text>
+              </View>
+
+              <Pressable
+                onPress={() => router.push("/AddTask")}
+                className="flex-row items-center rounded-2xl bg-gray-900 px-6 py-4"
+              >
+                <MaterialCommunityIcons name="plus" size={22} color="white" />
+
+                <Text className="ml-2 font-semibold text-white">Add Task</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 

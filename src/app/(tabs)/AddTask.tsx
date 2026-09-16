@@ -11,8 +11,17 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from "expo-router";
+
+import { addTask } from "@/services/dataController";
+
+type NewTask = {
+  title: string;
+  description: string;
+  priority: "low" | "medium" | "high";
+  status: "pending" | "in-progress" | "completed";
+  dueDate: string;
+};
 
 const AddTask = () => {
   const [title, setTitle] = useState("");
@@ -26,6 +35,7 @@ const AddTask = () => {
 
   const [dueDate, setDueDate] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowCalendar(false);
@@ -41,8 +51,9 @@ const AddTask = () => {
       return;
     }
 
-    const newTask = {
-      _id: Date.now().toString(),
+    if (loading) return;
+
+    const newTask: NewTask = {
       title: title.trim(),
       description: description.trim(),
       priority,
@@ -51,46 +62,46 @@ const AddTask = () => {
     };
 
     try {
-      const storedTasks = await AsyncStorage.getItem("my_tasks");
+      setLoading(true);
 
-      let tasks = [];
+      await addTask(newTask);
 
-      if (storedTasks) {
-        const parsed = JSON.parse(storedTasks);
-
-        // Make sure stored data is actually an array
-        tasks = Array.isArray(parsed) ? parsed : [];
-      }
-
-      tasks.push(newTask);
-
-      await AsyncStorage.setItem("my_tasks", JSON.stringify(tasks));
-
-      Alert.alert("Task added", "Your task has been created.");
+      Alert.alert("Task added", "Your task has been created.", [
+        {
+          text: "OK",
+          onPress: () => {
+            router.replace("/");
+          },
+        },
+      ]);
 
       setTitle("");
       setDescription("");
       setPriority("medium");
       setStatus("pending");
       setDueDate(new Date());
-
-      router.push('/');
     } catch (error) {
-      console.error("Failed to save task:", error);
-      Alert.alert("Error", "Could not save the task.");
+      console.error("Failed to create task:", error);
+
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Could not create the task.",
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <ScrollView
-      className="flex-1 mt-20"
+      className="mt-20 flex-1"
       contentContainerClassName="px-6 pt-8 pb-36"
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
       <StatusBar barStyle="dark-content" />
-      {/* Header */}
 
+      {/* Header */}
       <View className="mb-10">
         <Text className="text-4xl font-bold tracking-tight text-gray-900">
           New task
@@ -102,7 +113,6 @@ const AddTask = () => {
       </View>
 
       {/* Title */}
-
       <View className="mb-7">
         <Text className="mb-2 text-sm font-medium text-gray-500">TITLE</Text>
 
@@ -112,12 +122,12 @@ const AddTask = () => {
           placeholder="Task title"
           placeholderTextColor="#A1A1AA"
           maxLength={100}
+          editable={!loading}
           className="border-b border-gray-300 pb-3 text-lg text-gray-900"
         />
       </View>
 
       {/* Description */}
-
       <View className="mb-8">
         <Text className="mb-2 text-sm font-medium text-gray-500">
           DESCRIPTION
@@ -131,12 +141,12 @@ const AddTask = () => {
           multiline
           textAlignVertical="top"
           maxLength={1000}
-          className="min-h-22.5 rounded-2xl bg-white p-4 text-base text-gray-900 border border-gray-200"
+          editable={!loading}
+          className="min-h-22.5 rounded-2xl border border-gray-200 bg-white p-4 text-base text-gray-900"
         />
       </View>
 
       {/* Priority */}
-
       <View className="mb-8">
         <Text className="mb-3 text-sm font-medium text-gray-500">PRIORITY</Text>
 
@@ -147,9 +157,10 @@ const AddTask = () => {
             return (
               <Pressable
                 key={item}
+                disabled={loading}
                 onPress={() => setPriority(item)}
                 className={`flex-1 rounded-xl py-3.5 ${
-                  active ? "bg-blue-500" : "bg-white border border-gray-200"
+                  active ? "bg-blue-500" : "border border-gray-200 bg-white"
                 }`}
               >
                 <Text
@@ -166,7 +177,6 @@ const AddTask = () => {
       </View>
 
       {/* Status */}
-
       <View className="mb-8">
         <Text className="mb-3 text-sm font-medium text-gray-500">STATUS</Text>
 
@@ -177,9 +187,10 @@ const AddTask = () => {
             return (
               <Pressable
                 key={item}
+                disabled={loading}
                 onPress={() => setStatus(item)}
                 className={`flex-1 rounded-xl py-3.5 ${
-                  active ? "bg-blue-500" : "bg-white border border-gray-200"
+                  active ? "bg-blue-500" : "border border-gray-200 bg-white"
                 }`}
               >
                 <Text
@@ -198,13 +209,13 @@ const AddTask = () => {
       </View>
 
       {/* Due Date */}
-
       <View className="mb-10">
         <Text className="mb-3 text-sm font-medium text-gray-500">DUE DATE</Text>
 
         <Pressable
+          disabled={loading}
           onPress={() => setShowCalendar(true)}
-          className="flex-row items-center rounded-2xl bg-white border border-gray-200 px-4 py-4"
+          className="flex-row items-center rounded-2xl border border-gray-200 bg-white px-4 py-4"
         >
           <MaterialCommunityIcons
             name="calendar-outline"
@@ -236,16 +247,26 @@ const AddTask = () => {
         )}
       </View>
 
-      {/* Add button */}
-
+      {/* Create Button */}
       <Pressable
+        disabled={loading || !title.trim()}
         onPress={handleAddTask}
-        className="h-14 flex-row items-center justify-center rounded-2xl bg-blue-500 active:bg-gray-800"
+        className={`h-14 flex-row items-center justify-center rounded-2xl ${
+          loading || !title.trim() ? "bg-gray-300" : "bg-blue-500"
+        }`}
       >
-        <MaterialCommunityIcons name="plus" size={22} color="white" />
+        <MaterialCommunityIcons
+          name={loading ? "loading" : "plus"}
+          size={22}
+          color={loading || !title.trim() ? "#6B7280" : "white"}
+        />
 
-        <Text className="ml-2 text-base font-semibold text-white">
-          Create task
+        <Text
+          className={`ml-2 text-base font-semibold ${
+            loading || !title.trim() ? "text-gray-500" : "text-white"
+          }`}
+        >
+          {loading ? "Creating..." : "Create task"}
         </Text>
       </Pressable>
     </ScrollView>
