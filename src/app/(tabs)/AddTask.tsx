@@ -70,7 +70,7 @@ const AddTask = () => {
         {
           text: "OK",
           onPress: () => {
-            router.replace("/");
+            router.back();
           },
         },
       ]);
