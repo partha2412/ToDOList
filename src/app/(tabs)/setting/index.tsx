@@ -51,9 +51,9 @@ const Setting = () => {
   // Checking authentication
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center">
+      <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" />
-      </SafeAreaView>
+      </View>
     );
   }
 
