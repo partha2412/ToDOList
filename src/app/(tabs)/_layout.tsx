@@ -64,7 +64,7 @@ export default function TabLayout() {
         </TabTrigger>
 
         <TabTrigger name="setting" href="/setting" asChild>
-          <TabButton label="Setting" icon="gear" />
+          <TabButton label="Cloud" icon="cloud" />
         </TabTrigger>
       </TabList>
     </Tabs>

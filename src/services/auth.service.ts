@@ -54,3 +54,23 @@ export const login = async (data: CredentialData) => {
     throw error;
   }
 };
+
+export async function checkAuth(){
+  try {
+    const token = await AsyncStorage.getItem("token");
+    const response = await fetch(`${API_URL}/auth/me`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        Cookie: `token=${token}`,
+      },
+    });
+    const res = await response.json();
+    // console.log(res.data);
+    return res.success;
+  } catch (error) {
+    Alert.alert("server error");
+    return false;
+  }
+}

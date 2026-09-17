@@ -1,19 +1,19 @@
-import React, { useState } from "react";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { router } from "expo-router";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ScrollView,
   Alert,
   Platform,
+  Pressable,
+  ScrollView,
   StatusBar,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { router } from "expo-router";
 
-import { addTask } from "@/services/dataController";
+import { addTask } from "@/services/data.service";
 
 type NewTask = {
   title: string;

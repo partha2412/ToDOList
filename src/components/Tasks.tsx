@@ -1,8 +1,8 @@
+import { cloudData, deleteTask, localData } from "@/services/data.service";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { deleteTask, loadData } from "@/services/dataController";
 
 import {
   Alert,
@@ -96,7 +96,7 @@ const Tasks = () => {
     setRefreshing(true);
 
     try {
-      const result = await loadData();
+      const result = await localData();
 
       setTasks(Array.isArray(result) ? result : []);
     } catch (error) {
@@ -214,104 +214,104 @@ const Tasks = () => {
         </Pressable>
 
         {/* DROPDOWN */}
-          {showSort && (
-            <View className="absolute right-5 top-14 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
-              {/* Recent */}
-              <Pressable
-                onPress={() => {
-                  setSortBy("recent");
-                  setShowSort(false);
-                }}
-                className="px-4 py-3"
+        {showSort && (
+          <View className="absolute right-5 top-14 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+            {/* Recent */}
+            <Pressable
+              onPress={() => {
+                setSortBy("recent");
+                setShowSort(false);
+              }}
+              className="px-4 py-3"
+            >
+              <Text
+                className={
+                  sortBy === "recent"
+                    ? "font-semibold text-sky-500"
+                    : "text-gray-700"
+                }
               >
-                <Text
-                  className={
-                    sortBy === "recent"
-                      ? "font-semibold text-sky-500"
-                      : "text-gray-700"
-                  }
-                >
-                  Recent
-                </Text>
-              </Pressable>
+                Recent
+              </Text>
+            </Pressable>
 
-              {/* Due Date */}
-              <Pressable
-                onPress={() => {
-                  setSortBy("dueDate");
-                  setShowSort(false);
-                }}
-                className="px-4 py-3"
+            {/* Due Date */}
+            <Pressable
+              onPress={() => {
+                setSortBy("dueDate");
+                setShowSort(false);
+              }}
+              className="px-4 py-3"
+            >
+              <Text
+                className={
+                  sortBy === "dueDate"
+                    ? "font-semibold text-sky-500"
+                    : "text-gray-700"
+                }
               >
-                <Text
-                  className={
-                    sortBy === "dueDate"
-                      ? "font-semibold text-sky-500"
-                      : "text-gray-700"
-                  }
-                >
-                  Due Date
-                </Text>
-              </Pressable>
+                Due Date
+              </Text>
+            </Pressable>
 
-              {/* Priority */}
-              <Pressable
-                onPress={() => {
-                  setSortBy("priority");
-                  setShowSort(false);
-                }}
-                className="px-4 py-3"
+            {/* Priority */}
+            <Pressable
+              onPress={() => {
+                setSortBy("priority");
+                setShowSort(false);
+              }}
+              className="px-4 py-3"
+            >
+              <Text
+                className={
+                  sortBy === "priority"
+                    ? "font-semibold text-sky-500"
+                    : "text-gray-700"
+                }
               >
-                <Text
-                  className={
-                    sortBy === "priority"
-                      ? "font-semibold text-sky-500"
-                      : "text-gray-700"
-                  }
-                >
-                  Priority
-                </Text>
-              </Pressable>
+                Priority
+              </Text>
+            </Pressable>
 
-              {/* Status */}
-              <Pressable
-                onPress={() => {
-                  setSortBy("status");
-                  setShowSort(false);
-                }}
-                className="px-4 py-3"
+            {/* Status */}
+            <Pressable
+              onPress={() => {
+                setSortBy("status");
+                setShowSort(false);
+              }}
+              className="px-4 py-3"
+            >
+              <Text
+                className={
+                  sortBy === "status"
+                    ? "font-semibold text-sky-500"
+                    : "text-gray-700"
+                }
               >
-                <Text
-                  className={
-                    sortBy === "status"
-                      ? "font-semibold text-sky-500"
-                      : "text-gray-700"
-                  }
-                >
-                  Status
-                </Text>
-              </Pressable>
+                Status
+              </Text>
+            </Pressable>
 
-              {/* Title */}
-              <Pressable
-                onPress={() => {
-                  setSortBy("title");
-                  setShowSort(false);
-                }}
-                className="px-4 py-3"
+            {/* Title */}
+            <Pressable
+              onPress={() => {
+                setSortBy("title");
+                setShowSort(false);
+              }}
+              className="px-4 py-3"
+            >
+              <Text
+                className={
+                  sortBy === "title"
+                    ? "font-semibold text-sky-500"
+                    : "text-gray-700"
+                }
               >
-                <Text
-                  className={
-                    sortBy === "title"
-                      ? "font-semibold text-sky-500"
-                      : "text-gray-700"
-                  }
-                >
-                  Title A-Z
-                </Text>
-              </Pressable>
-            </View>
-          )}
+                Title A-Z
+              </Text>
+            </Pressable>
+          </View>
+        )}
       </View>
 
       {/* TASK LIST */}

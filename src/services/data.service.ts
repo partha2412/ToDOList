@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { API_URL } from "./api";
-import { Alert } from "react-native";
 import { router } from "expo-router";
+import { Alert } from "react-native";
+import { API_URL } from "./api";
 
 type NewTask = {
   title: string;
@@ -12,64 +12,62 @@ type NewTask = {
   dueDate: string;
 };
 
-export async function loadData() {
-  // Get local data
-  const localData = await AsyncStorage.getItem("my_tasks");
-
-  let localTasks = [];
-
+export async function localData() {
   try {
-    const parsed = localData ? JSON.parse(localData) : [];
-    localTasks = Array.isArray(parsed) ? parsed : [];
-  } catch {
-    localTasks = [];
-  }
+    const storedData = await AsyncStorage.getItem("my_tasks");
 
+    const parsed = storedData ? JSON.parse(storedData) : [];
+
+    const localTasks = Array.isArray(parsed)
+      ? parsed.filter((task) => task && task._id)
+      : [];
+
+    return localTasks;
+  } catch (error) {
+    Alert.alert("Failed to load Local Data", `${error}`);
+    return [];
+  }
+}
+
+export async function cloudData() {
   try {
     const token = await AsyncStorage.getItem("token");
-
-    if (!token) {
-      return localTasks;
-    }
-
-    const response = await fetch(`${API_URL}/tasks`, {
+    const cloudData = await fetch(`${API_URL}/tasks`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Cookie: `token=${token}`,
       },
     });
-
-    if (!response.ok) {
-      return localTasks;
+    if (!cloudData.ok) {
+      throw new Error("Error while loading cloud data");
     }
 
-    const result = await response.json();
-
-    const apiTasks = Array.isArray(result.data) ? result.data : [];
-
-    // Combine local + API and remove duplicate IDs
-    const taskMap = new Map();
-
-    for (const task of localTasks) {
-      taskMap.set(task._id, task);
-    }
-
-    for (const task of apiTasks) {
-      taskMap.set(task._id, task);
-    }
-
-    return Array.from(taskMap.values());
+    const cloudTasks = await cloudData.json();
+    return cloudTasks.data;
   } catch (error) {
-    console.error("API error:", error);
-
-    // API failed → only local
-    return localTasks;
+    Alert.alert("Failed to Fetch cloud data", `${error}`);
   }
 }
 
 export async function deleteTask(id: string) {
   try {
+    const storedTasks = await AsyncStorage.getItem("my_tasks");
+    const tasks = storedTasks ? JSON.parse(storedTasks) : [];
+
+    // Local task
+    if (id.startsWith("local-")) {
+      const updatedTasks = tasks.filter(
+        (task: { _id: string }) => task._id !== id,
+      );
+
+      await AsyncStorage.setItem("my_tasks", JSON.stringify(updatedTasks));
+
+      router.push("/");
+      return;
+    }
+
+    // Cloud task
     const token = await AsyncStorage.getItem("token");
 
     if (!token) {
@@ -84,18 +82,18 @@ export async function deleteTask(id: string) {
       },
     });
 
-    if (result.status === 200) {
-      const storedTasks = await AsyncStorage.getItem("my_tasks");
-
-      const tasks = storedTasks ? JSON.parse(storedTasks) : [];
-
-      const updatedTasks = tasks.filter(
-        (task: { _id: string }) => task._id !== id,
-      );
-      await AsyncStorage.setItem("my_tasks", JSON.stringify(updatedTasks));
-
-      router.push("/");
+    if (!result.ok) {
+      throw new Error("Failed to delete cloud task");
     }
+
+    // Delete from local storage too
+    const updatedTasks = tasks.filter(
+      (task: { _id: string }) => task._id !== id,
+    );
+
+    await AsyncStorage.setItem("my_tasks", JSON.stringify(updatedTasks));
+
+    router.push("/");
   } catch (error) {
     Alert.alert("Server Error", `${error}`);
   }
@@ -179,5 +177,36 @@ export async function addTask(data: NewTask) {
     // IMPORTANT:
     // Don't throw here because local creation succeeded.
     return localTask;
+  }
+}
+
+export async function syncCloud() {
+  try {
+    const localData = await AsyncStorage.getItem("my_tasks");
+    const parsed = localData ? JSON.parse(localData) : [];
+    const localTasks = Array.isArray(parsed) ? parsed : [];
+
+    const cloudTasks = await cloudData();
+
+    const uniqueMerged = localTasks
+      .concat(cloudTasks)
+      .filter((item, index, self) => {
+        return self.indexOf(item) === index;
+      });
+
+    console.log(uniqueMerged);
+
+    // Save to local storage
+    await AsyncStorage.setItem("my_tasks", JSON.stringify(uniqueMerged));
+
+    return uniqueMerged;
+  } catch (error) {
+    Alert.alert("Failed to Sync", `${error}`);
+
+    // Keep existing local data if sync fails
+    const localData = await AsyncStorage.getItem("my_tasks");
+    const parsed = localData ? JSON.parse(localData) : [];
+
+    return Array.isArray(parsed) ? parsed : [];
   }
 }
