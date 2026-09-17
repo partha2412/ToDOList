@@ -1,19 +1,24 @@
 import { View, Text, ActivityIndicator, Pressable } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Login from "@/components/Login";
 import { syncCloud } from "@/services/data.service";
-import { checkAuth } from "@/services/auth.service";
+import { checkAuth, logout } from "@/services/auth.service";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 const Setting = () => {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
-  useEffect(() => {
-    checkUser();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      checkUser();
+    }, []),
+  );
 
   const checkUser = async () => {
     try {
@@ -26,6 +31,10 @@ const Setting = () => {
       setLoading(false);
     }
   };
+
+  const handleLogout = async ()=>{
+    await logout();
+  }
 
   const handleSync = async () => {
     try {
@@ -49,29 +58,47 @@ const Setting = () => {
   }
 
   return (
-      <View className="flex-1 bg-amber-00 items-center justify-center gap-10">
-        {authenticated ? (
-          <>
-            <Text className="text-xl font-bold">You are logged in</Text>
+    <View className="flex-1 bg-[#F7F7F5]">
+      {authenticated ? (
+        <View className="flex-1 items-center justify-center px-6">
+          <Pressable
+            onPress={handleLogout}
+            className="absolute right-6 top-16 flex-row items-center gap-2 rounded-xl bg-white px-4 py-3"
+          >
+            <MaterialCommunityIcons name="logout" size={22} color="black" />
+            <Text className="font-semibold text-gray-900">Log out</Text>
+          </Pressable>
+
+          <View className="w-full max-w-md items-center">
+            <Text className="mb-6 text-2xl font-bold text-gray-950">
+              You are logged in
+            </Text>
 
             <Pressable
               onPress={handleSync}
               disabled={syncing}
-              className="bg-black px-8 py-4 rounded-xl"
+              className={`h-14 w-full items-center justify-center rounded-2xl ${
+                syncing ? "bg-gray-300" : "bg-gray-950"
+              }`}
             >
-              <Text className="text-white font-bold">
+              <Text
+                className={`text-[15px] font-bold ${
+                  syncing ? "text-gray-500" : "text-white"
+                }`}
+              >
                 {syncing ? "Syncing..." : "Sync Cloud"}
               </Text>
             </Pressable>
-          </>
-        ) : (
-          <>
-            <Text className="text-xl font-bold">Login</Text>
-
+          </View>
+        </View>
+      ) : (
+        <View className="flex-1 px-6">
+          <View className="flex-1 w-full max-w-md self-center">
             <Login />
-          </>
-        )}
-      </View>
+          </View>
+        </View>
+      )}
+    </View>
   );
 };
 

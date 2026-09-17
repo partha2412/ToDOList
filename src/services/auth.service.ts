@@ -37,7 +37,7 @@ export const login = async (data: CredentialData) => {
       {
         text: "OK",
         onPress: () => {
-          router.replace("/");
+          router.replace("/setting");
         },
       },
     ]);
@@ -72,5 +72,24 @@ export async function checkAuth(){
   } catch (error) {
     Alert.alert("server error");
     return false;
+  }
+}
+
+export async function logout(){
+  try {
+    const token = await AsyncStorage.getItem("token");
+    const response = await fetch(`${API_URL}/auth/logout`,{
+      method: "POST",
+      headers: {
+        Cookie: `token=${token}`
+      }
+    })
+    const res = await response.json();
+    if(res.success){
+      await AsyncStorage.removeItem("token");
+      router.push('/setting');
+    }
+  } catch (error) {
+    Alert.alert("Failed to logout", `${error}`);
   }
 }

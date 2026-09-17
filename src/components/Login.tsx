@@ -62,12 +62,12 @@ const Login = () => {
           <View className="flex-1 justify-center">
             <View className="w-full max-w-md self-center">
               <View className="mb-10">
-                <View className="mb-7 h-12 w-12 items-center justify-center rounded-2xl bg-gray-950">
+                {/* <View className="mb-6 h-12 w-12 items-center justify-center rounded-2xl bg-gray-950">
                   <Feather name="check" size={22} color="white" />
-                </View>
+                </View> */}
 
                 <Text className="text-3xl font-bold tracking-tight text-gray-950">
-                  Welcome back
+                  Log in
                 </Text>
 
                 <Text className="mt-2 text-[15px] leading-6 text-gray-500">
@@ -76,7 +76,7 @@ const Login = () => {
               </View>
 
               <View className="gap-5">
-                <View className="w-full">
+                <View>
                   <Text className="mb-2.5 text-[13px] font-semibold text-gray-700">
                     Email
                   </Text>
@@ -93,17 +93,12 @@ const Login = () => {
                       placeholder="Enter your email"
                       placeholderTextColor="#A1A1AA"
                       value={data.email}
-                      onChangeText={(text) =>
-                        setData({
-                          ...data,
-                          email: text,
-                        })
-                      }
+                      onChangeText={(text) => setData({ ...data, email: text })}
                     />
                   </View>
                 </View>
 
-                <View className="w-full">
+                <View>
                   <View className="mb-2.5 flex-row items-center justify-between">
                     <Text className="text-[13px] font-semibold text-gray-700">
                       Password
@@ -129,10 +124,7 @@ const Login = () => {
                       secureTextEntry={!show}
                       value={data.password}
                       onChangeText={(text) =>
-                        setData({
-                          ...data,
-                          password: text,
-                        })
+                        setData({ ...data, password: text })
                       }
                     />
 
@@ -163,36 +155,6 @@ const Login = () => {
                     }`}
                   >
                     {loading ? "Logging in..." : "Sign in"}
-                  </Text>
-                </Pressable>
-
-                <View className="my-2 flex-row items-center">
-                  <View className="h-px flex-1 bg-gray-200" />
-
-                  <Text className="mx-4 text-xs font-medium text-gray-400">
-                    OR
-                  </Text>
-
-                  <View className="h-px flex-1 bg-gray-200" />
-                </View>
-
-                <Pressable className="h-14 w-full flex-row items-center justify-center rounded-2xl border border-gray-200 bg-white">
-                  <Feather name="globe" size={18} color="#18181B" />
-
-                  <Text className="ml-3 text-[15px] font-semibold text-gray-800">
-                    Continue with Google
-                  </Text>
-                </Pressable>
-              </View>
-
-              <View className="mt-9 flex-row items-center justify-center">
-                <Text className="text-sm text-gray-500">
-                  Don't have an account?
-                </Text>
-
-                <Pressable hitSlop={8}>
-                  <Text className="ml-1.5 text-sm font-bold text-gray-950">
-                    Sign up
                   </Text>
                 </Pressable>
               </View>
